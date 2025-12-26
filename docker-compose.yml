@@ -1,32 +1,48 @@
 services:
+  caddy:
+    image: caddy:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8448:8448" # Порт федерации Matrix
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - matrix_network
+
   db:
     image: postgres:15-alpine
     restart: always
     environment:
       POSTGRES_DB: synapse
       POSTGRES_USER: synapse
-      POSTGRES_PASSWORD: 
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_INITDB_ARGS: "--lc-collate=C --lc-ctype=C --encoding=UTF8"
     volumes:
       - ./postgresdata:/var/lib/postgresql/data
+    networks:
+      - matrix_network
 
   synapse:
     image: matrixdotorg/synapse:latest
     restart: always
     depends_on:
       - db
-    ports:
-      - "127.0.0.1:8008:8008"
-    volumes:
-      - ./synapse:/data
     environment:
       - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+    volumes:
+      - ./synapse:/data
+    networks:
+      - matrix_network
 
   coturn:
     image: coturn/coturn:latest
     container_name: matrix_coturn
     restart: always
-    network_mode: host 
+    network_mode: host # Для TURN это критично для работы через NAT
     volumes:
       - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
 
@@ -40,3 +56,13 @@ services:
     ports:
       - "7880:7880"
       - "50000-50050:50000-50050/udp"
+    networks:
+      - matrix_network
+
+networks:
+  matrix_network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
