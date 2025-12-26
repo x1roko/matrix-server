@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: synapse
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: 
+      POSTGRES_INITDB_ARGS: "--lc-collate=C --lc-ctype=C --encoding=UTF8"
+    volumes:
+      - ./postgresdata:/var/lib/postgresql/data
+
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:8008:8008"
+    volumes:
+      - ./synapse:/data
+    environment:
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: matrix_coturn
+    restart: always
+    network_mode: host 
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: matrix_livekit
+    restart: always
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"
+      - "50000-50050:50000-50050/udp"

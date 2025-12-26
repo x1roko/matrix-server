@@ -1,0 +1,7 @@
+port: 7880
+bind_addresses:
+  - ""
+rtc:
+  use_external_ip: true # Если сервер за NAT, LiveKit сам определит IP
+keys:
+    "ue api key": "ur secret"

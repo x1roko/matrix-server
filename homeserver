@@ -1,0 +1,49 @@
+server_name: "ur_domain.com"
+pid_file: /data/homeserver.pid
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    resources:
+      - names: [client, federation]
+        compress: false
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: 
+    database: synapse
+    host: db
+    cp_min: 5
+    cp_max: 10
+log_config: "/data/ur_domain.com.log.config"
+media_store_path: /data/media_store
+enable_registration: true
+enable_registration_without_verification: true
+registration_shared_secret: ""
+enable_registration_captcha: false
+auth_rest_providers:
+    - type: "dummy"
+report_stats: true
+macaroon_secret_key: ""
+form_secret: ""
+signing_key_path: "/data/ur_domain.com.signing.key"
+trusted_key_servers:
+  - server_name: "matrix.org"
+
+
+turn_uris: ["turn:ur_domain.com:3478?transport=udp", "turn:ur_domain.com:3478?transport=tcp"]
+turn_shared_secret: ""
+turn_user_lifetime: 86400000
+
+matrix_rtc:
+  enabled: true
+  active_foci:
+    - type: livekit
+      livekit_service_url: "https://livekit.ur_domain.com"
+      livekit_api_key: ""
+      livekit_api_secret: ""
+
+experimental_features:
+  msc4143_enabled: true

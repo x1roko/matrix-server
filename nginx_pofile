@@ -1,0 +1,80 @@
+server {
+    if ($host = ur_domain.com) {
+        return 301 https://$host$request_uri;
+    } 
+
+    listen 80;
+    server_name ur_domain.com www.ur_domain.com;
+}
+
+server {
+    listen 443 ssl;
+    server_name ur_domain.com www.ur_domain.com;
+
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/ur_domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ur_domain.com/privkey.pem; 
+
+    location /.well-known/matrix/server {
+    	return 200 '{"m.server": "matrix.ur_domain.com:443"}';
+    	add_header Content-Type application/json;
+    	add_header Access-Control-Allow-Origin *;
+    }
+
+    location /.well-known/matrix/client {
+        return 200 '{"m.homeserver":{"base_url":"https://matrix.ur_domain.com"},"org.matrix.msc4143.rtc_foci":[{"type":"livekit","livekit_service_url":"https://livekit.ur_domain.com"}]}';
+        add_header Content-Type application/json;
+        add_header "Access-Control-Allow-Origin" *;
+    }
+}
+
+server {
+    listen 8448 ssl;
+    server_name ur_domain.com  matrix.ur_domain.com;
+    ssl_certificate /etc/letsencrypt/live/ur_domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ur_domain.com/privkey.pem;
+
+
+    location / {
+        proxy_pass http://localhost:8008;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+    }
+
+}
+
+# Основной клиентский API
+server {
+    listen 443 ssl;
+    server_name matrix.ur_domain.com;
+
+    ssl_certificate /etc/letsencrypt/live/ur_domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ur_domain.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:8008;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        client_max_body_size 50M; # Для загрузки файлов/картинок
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name livekit.ud_domain.com;
+    ssl_certificate /etc/letsencrypt/live/ur_domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ur_domain.com/privkey.pem; 
+
+
+    location / {
+        proxy_pass http://localhost:7880; # Порт контейнера LiveKit
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
