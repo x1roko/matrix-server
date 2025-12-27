@@ -19,6 +19,14 @@
 
 1. **Подготовьте домен**: Направьте `your-domain.com`, `matrix.your-domain.com` и `livekit.your-domain.com` на IP сервера.
 
+| Тип | Имя (Host) | Значение (IP) | Описание |
+| :--- | :--- | :--- | :--- |
+| **A** | `@` | `YOUR_SERVER_IP` | Основной домен и сервисы `.well-known` |
+| **A** | `matrix` | `YOUR_SERVER_IP` | Точка входа для Matrix API |
+| **A** | `livekit` | `YOUR_SERVER_IP` | Сервер видеосвязи (WebRTC) |
+| **A** | `panel` | `YOUR_SERVER_IP` | Панель управления (опционально) 
+
+|
 2. **Запустите скрипт настройки:**
    ```bash
    chmod +x setup.sh
