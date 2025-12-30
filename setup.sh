@@ -37,6 +37,7 @@ fi
 cat <<EOF > synapse/homeserver.yaml
 server_name: "$DOMAIN"
 pid_file: /data/homeserver.pid
+report_stats: false
 listeners:
   - port: 8008
     tls: false
