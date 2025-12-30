@@ -1,0 +1,102 @@
+services:
+  synapse:
+    image: docker.io/matrixdotorg/synapse:latest
+    restart: unless-stopped
+    environment:
+      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+    volumes:
+      - ./synapse:/data 
+    depends_on:
+      - db
+    networks:
+      - synapse_network
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: synapse
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--lc-collate=C --lc-ctype=C --encoding=UTF8"
+    volumes:
+      - ./postgresdata:/var/lib/postgresql/data
+    networks:
+      - synapse_network
+
+  synapse-admin:
+    image: awesometechnologies/synapse-admin:latest
+    restart: unless-stopped
+    networks:
+      - synapse_network
+
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro 
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/logs:/var/log/nginx             
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8448:8448"
+    depends_on:
+      - synapse
+      - synapse-admin
+      - element-web
+    networks:
+      - synapse_network
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: element-call-livekit
+    command: --config /etc/livekit/livekit.yaml
+    restart: unless-stopped
+    environment:
+      - LIVEKIT_KEYS=${LIVEKIT_KEY}: ${LIVEKIT_SECRET}
+    volumes:
+      - ./livekit:/etc/livekit:ro      
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    ports:
+      - "7880:7880/tcp"
+      - "7881:7881/tcp"
+      - "50100-50200:50100-50200/udp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+    networks:
+      - synapse_network
+
+  auth-service:
+    image: ghcr.io/element-hq/lk-jwt-service:latest
+    container_name: element-call-jwt
+    hostname: auth-server
+    environment:
+      - LIVEKIT_JWT_PORT=8080
+      - LIVEKIT_URL=https://livekit.${DOMAIN}
+      - LIVEKIT_KEY=${LIVEKIT_KEY}
+      - LIVEKIT_SECRET=${LIVEKIT_SECRET}
+      - LIVEKIT_FULL_ACCESS_HOMESERVERS=${DOMAIN}
+    restart: unless-stopped
+    networks:
+      - synapse_network
+
+  mautrix-telegram:
+    container_name: mautrix-telegram
+    image: dock.mau.dev/mautrix/telegram:latest
+    restart: unless-stopped
+    volumes:
+      - ./mautrix-telegram:/data  # Своя папка для моста
+    networks:
+      - synapse_network
+
+  element-web:
+    container_name: element-web
+    image: vectorim/element-web
+    restart: unless-stopped
+    networks:
+      - synapse_network
+
+networks:
+  synapse_network:
+    driver: bridge
